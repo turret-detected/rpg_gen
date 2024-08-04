@@ -3,13 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Generator</title>
+    <title>Sci-Fi Random Generator</title>
     <script src="/htmx.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/concrete.css/3.0.0/concrete.min.css">
+    <style>
+        @font-face {
+            font-family: 'StarJedi';
+            src: url('/starjedi.otf') format('opentype');
+        }
+
+        h1 {
+            font-family: 'StarJedi', sans-serif;
+        }
+    </style>
 </head>
 <body>
     <main>
-        <h1>Random Generator</h1>
+        <h1>Stars With Number Random Generator</h1>
         <form id="queryForm" hx-get="/api/random" hx-target="#results" hx-swap="innerHTML">
             <label for="category">Select Category:</label>
             <select id="category" name="category" hx-get="/api/categories" hx-trigger="load" hx-target="#category">
