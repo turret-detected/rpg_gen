@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Generator</title>
+    <script src="/htmx.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/concrete.css/3.0.0/concrete.min.css">
+</head>
+<body>
+    <main>
+        <h1>Random Generator</h1>
+        <form id="queryForm" hx-get="/api/random" hx-target="#results" hx-swap="innerHTML">
+            <label for="category">Select Category:</label>
+            <select id="category" name="category" hx-get="/api/categories" hx-trigger="load" hx-target="#category">
+                <!-- Options will be populated dynamically by HTMX -->
+            </select>
+            <label for="count">Number of Elements:</label>
+            <input type="number" id="count" name="count" min="1" value="1">
+            <button type="submit">Generate</button>
+        </form>
+        <h2>Results</h2>
+        <ul id="results"></ul>
+    </main>
+</body>
+</html>
