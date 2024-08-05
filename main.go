@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"math/rand"
 	"net/http"
 	"os"
@@ -14,8 +15,10 @@ import (
 var categories map[string][]string
 
 func main() {
+	filePath := flag.String("data", "data/categories.json", "data file to use")
+
 	// Load categories from JSON file
-	file, err := os.Open("data/scifi.json")
+	file, err := os.Open(*filePath)
 	if err != nil {
 		panic(err)
 	}

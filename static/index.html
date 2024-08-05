@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,22 +16,44 @@
         h1 {
             font-family: 'StarJedi', sans-serif;
         }
+
+        footer {
+            clear: both;
+            position: relative;
+        }
+
+        .notice {
+            font-size: 10px;
+        }
     </style>
 </head>
+
 <body>
     <main>
-        <h1>Stars With Number Random Generator</h1>
-        <form id="queryForm" hx-get="/api/random" hx-target="#results" hx-swap="innerHTML">
-            <label for="category">Select Category:</label>
-            <select id="category" name="category" hx-get="/api/categories" hx-trigger="load" hx-target="#category">
-                <!-- Options will be populated dynamically by HTMX -->
-            </select>
-            <label for="count">Number of Elements:</label>
-            <input type="number" id="count" name="count" min="1" value="1">
-            <button type="submit">Generate</button>
-        </form>
-        <h2>Results</h2>
-        <ul id="results"></ul>
+        <section>
+            <h1>Stars With Number Random Generator</h1>
+            <form id="queryForm" hx-get="/api/random" hx-target="#results" hx-swap="innerHTML">
+                <label for="category">Select Category:</label>
+                <select id="category" name="category" hx-get="/api/categories" hx-trigger="load" hx-target="#category">
+                    <!-- Options will be populated dynamically by HTMX -->
+                </select>
+                <label for="count">Number of Elements:</label>
+                <input type="number" id="count" name="count" min="1" value="1">
+                <button type="submit">Generate</button>
+            </form>
+            <h2>Results</h2>
+            <ul id="results"></ul>
+            </br>
+        </section>
+
+        <section>
+            <footer>
+                <p class="notice">Author: Andrew Mohnkern aka turret-detected</p>
+                <p class="notice">Contains derivative works, modified and presented under fair use</p>
+                <p class="notice"><a href="/credits.html">Credits</a></p>
+            </footer>
+        </section>
     </main>
 </body>
+
 </html>
