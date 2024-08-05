@@ -1,37 +1,75 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
-	"math/rand"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	wrand "github.com/mroth/weightedrand/v2"
+	"github.com/samber/lo"
+	"gopkg.in/yaml.v3"
 )
 
-var categories map[string][]string
+type DataFileV1 struct {
+	Version    int            `yaml:"version"`
+	Generators []*GeneratorV1 `yaml:"generators"`
+}
+
+type GeneratorV1 struct {
+	Name    string `yaml:"name"`
+	Type    string `yaml:"type"`
+	Entries []any  `yaml:"entries"`
+	chooser *wrand.Chooser[string, int]
+}
+
+type GeneratorType string
+
+const (
+	Weighted GeneratorType = "weighted"
+)
+
+type WeightedGeneratorEntry []string
 
 func main() {
-	filePath := flag.String("data", "data/categories.json", "data file to use")
+	filePath := flag.String("data", "data/demo.yaml", "data file to use")
+	flag.Parse()
 
-	// Load categories from JSON file
-	file, err := os.Open(*filePath)
-	if err != nil {
-		panic(err)
-	}
+	// Load categories from YAML file
+	file := lo.Must(os.Open(*filePath))
 	defer file.Close()
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&categories); err != nil {
-		panic(err)
+	fileBytes := lo.Must(io.ReadAll(file))
+	data := DataFileV1{}
+	lo.Must0(yaml.Unmarshal(fileBytes, &data))
+
+	for _, generator := range data.Generators {
+		choices := make([]wrand.Choice[string, int], len(generator.Entries))
+		generatorType := GeneratorType(generator.Type)
+		switch generatorType {
+		case Weighted:
+			for i, choice := range generator.Entries {
+				chioceList := choice.([]any)
+				entry := chioceList[0].(string)
+				weight := chioceList[1].(float64)
+				choices[i] = wrand.NewChoice(entry, int(weight*100))
+			}
+		}
+		generator.chooser = lo.Must(wrand.NewChooser(choices...))
 	}
 
 	// Initialize Echo
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set("data", &data)
+			return next(c)
+		}
+	})
 
 	// Serve static files
 	e.Static("/", "static")
@@ -45,9 +83,11 @@ func main() {
 }
 
 func getCategories(c echo.Context) error {
+	data := c.Get("data").(*DataFileV1)
+
 	var categoryList []string
-	for category := range categories {
-		categoryList = append(categoryList, category)
+	for _, generator := range data.Generators {
+		categoryList = append(categoryList, generator.Name)
 	}
 
 	// Generate HTML options for the select dropdown
@@ -66,16 +106,19 @@ func getRandomElements(c echo.Context) error {
 		count = 1
 	}
 
-	elements, ok := categories[category]
+	data := c.Get("data").(*DataFileV1)
+
+	coll, ok := lo.Find(data.Generators, func(generator *GeneratorV1) bool {
+		return generator.Name == category
+	})
 	if !ok {
 		return c.HTML(http.StatusBadRequest, "Invalid category")
 	}
 
-	if count > len(elements) {
-		count = len(elements)
+	randomElements := make([]string, count)
+	for i := range randomElements {
+		randomElements[i] = coll.chooser.Pick()
 	}
-
-	randomElements := getRandomItems(elements, count)
 
 	// Generate HTML list items for the results
 	htmlResults := ""
@@ -83,13 +126,4 @@ func getRandomElements(c echo.Context) error {
 		htmlResults += `<li>` + element + `</li>`
 	}
 	return c.HTML(http.StatusOK, htmlResults)
-}
-
-func getRandomItems(list []string, count int) []string {
-	perm := rand.Perm(len(list))
-	result := make([]string, count)
-	for i := 0; i < count; i++ {
-		result[i] = list[perm[i]]
-	}
-	return result
 }

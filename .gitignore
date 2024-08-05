@@ -1,3 +1,4 @@
 data/**
 
 !data/categories.json
+!data/demo.yaml
