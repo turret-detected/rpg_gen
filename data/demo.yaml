@@ -1,23 +1,35 @@
 version: 1
 generators:
-    - name: Fruit
-      type: weighted
-      entries:
-          - [Apple, 1.0]
-          - [Banana, 1.0]
-          - [Cherry, 0.5]
-          - [Strawberry, 0.9]
-    - name: Animal
-      type: weighted
-      entries:
-          - [Cat, 1.0]
-          - [Dog, 1.0]
-          - [Bear, 0.5]
-          - [Elephant, 0.2]
-    - name: Color
-      type: weighted
-      entries:
-          - [Red, 1.0]
-          - [Blue, 1.0]
-          - [Yellow, 1.0]
-          - [Purple, 0.6]
+  - name: Fruit
+    type: weighted
+    entries:
+      - [Apple, 1.0]
+      - [Banana, 0.9]
+      - [Blackberry, 0.9]
+      - [Cherry, 0.5]
+      - [Grape, 0.8]
+      - [Grapefruit, 0.4]
+      - [Lemon, 1.0]
+      - [Lime, 0.9]
+      - [Pineapple, 0.6]
+      - [Strawberry, 0.9]
+      - [Watermelon, 0.7]
+  - name: Animal
+    type: weighted
+    entries:
+      - [Cat, 1.0]
+      - [Dog, 1.0]
+      - [Bear, 0.5]
+      - [Elephant, 0.2]
+  - name: Color
+    type: unweighted
+    entries:
+      - Red
+      - Orange
+      - Yellow
+      - Green
+      - Blue
+      - Purple
+      - Black
+      - White
+      - Pink

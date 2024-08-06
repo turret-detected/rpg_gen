@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -29,10 +30,9 @@ type GeneratorV1 struct {
 type GeneratorType string
 
 const (
-	Weighted GeneratorType = "weighted"
+	Weighted   GeneratorType = "weighted"
+	Unweighted GeneratorType = "unweighted"
 )
-
-type WeightedGeneratorEntry []string
 
 func main() {
 	filePath := flag.String("data", "data/demo.yaml", "data file to use")
@@ -51,11 +51,21 @@ func main() {
 		switch generatorType {
 		case Weighted:
 			for i, choice := range generator.Entries {
-				chioceList := choice.([]any)
-				entry := chioceList[0].(string)
-				weight := chioceList[1].(float64)
+				choiceList := choice.([]any)
+				entry := choiceList[0].(string)
+				weight := choiceList[1].(float64)
 				choices[i] = wrand.NewChoice(entry, int(weight*100))
 			}
+		case Unweighted:
+			for i, choice := range generator.Entries {
+				entry := choice.(string)
+				choices[i] = wrand.NewChoice(entry, 1)
+			}
+		default:
+			choices = []wrand.Choice[string, int]{{
+				Item:   fmt.Sprint("invalid type: ", generator.Type, ". THIS IS A BUG"),
+				Weight: 1,
+			}}
 		}
 		generator.chooser = lo.Must(wrand.NewChooser(choices...))
 	}
