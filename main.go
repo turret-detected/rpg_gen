@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -73,9 +72,8 @@ func main() {
 	// Load categories from YAML file
 	file := lo.Must(os.Open(*filePath))
 	defer file.Close()
-	fileBytes := lo.Must(io.ReadAll(file))
 	data := DataFileV1{}
-	lo.Must0(yaml.Unmarshal(fileBytes, &data))
+	lo.Must0(yaml.NewDecoder(file).Decode(&data))
 	DataTable = createGenerators(data)
 
 	// Initialize Echo

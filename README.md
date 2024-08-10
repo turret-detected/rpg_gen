@@ -2,6 +2,8 @@
 
 A random generator tool. Written with Go and HTMX.
 
+[Live Site](https://plainswatch.dev)
+
 ## Notes
 
 htmx: version 2.0.1
