@@ -34,17 +34,11 @@ const (
 	Unweighted GeneratorType = "unweighted"
 )
 
-func main() {
-	filePath := flag.String("data", "data/demo.yaml", "data file to use")
-	flag.Parse()
+var (
+	DataTable DataFileV1 = DataFileV1{}
+)
 
-	// Load categories from YAML file
-	file := lo.Must(os.Open(*filePath))
-	defer file.Close()
-	fileBytes := lo.Must(io.ReadAll(file))
-	data := DataFileV1{}
-	lo.Must0(yaml.Unmarshal(fileBytes, &data))
-
+func createGenerators(data DataFileV1) DataFileV1 {
 	for _, generator := range data.Generators {
 		choices := make([]wrand.Choice[string, int], len(generator.Entries))
 		generatorType := GeneratorType(generator.Type)
@@ -69,6 +63,20 @@ func main() {
 		}
 		generator.chooser = lo.Must(wrand.NewChooser(choices...))
 	}
+	return data
+}
+
+func main() {
+	filePath := flag.String("data", "data/demo.yaml", "data file to use")
+	flag.Parse()
+
+	// Load categories from YAML file
+	file := lo.Must(os.Open(*filePath))
+	defer file.Close()
+	fileBytes := lo.Must(io.ReadAll(file))
+	data := DataFileV1{}
+	lo.Must0(yaml.Unmarshal(fileBytes, &data))
+	DataTable = createGenerators(data)
 
 	// Initialize Echo
 	e := echo.New()
@@ -76,7 +84,7 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			c.Set("data", &data)
+			c.Set("data", &DataTable)
 			return next(c)
 		}
 	})
@@ -87,6 +95,13 @@ func main() {
 	// Define API routes
 	e.GET("/api/categories", getCategories)
 	e.GET("/api/random", getRandomElements)
+
+	admin := e.Group("/admin", middleware.KeyAuth(func(auth string, c echo.Context) (bool, error) {
+		fmt.Println(auth)
+		fmt.Println(os.Getenv("RPG_ADMIN_KEY"))
+		return auth == os.Getenv("RPG_ADMIN_KEY"), nil
+	}))
+	admin.PUT("/upload", putUpload)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":8080"))
@@ -136,4 +151,11 @@ func getRandomElements(c echo.Context) error {
 		htmlResults += `<li>` + element + `</li>`
 	}
 	return c.HTML(http.StatusOK, htmlResults)
+}
+
+func putUpload(c echo.Context) error {
+	newData := DataFileV1{}
+	lo.Must0(yaml.NewDecoder(c.Request().Body).Decode(&newData))
+	DataTable = createGenerators(newData)
+	return c.String(http.StatusOK, "data updated")
 }
