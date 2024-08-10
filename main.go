@@ -97,8 +97,6 @@ func main() {
 	e.GET("/api/random", getRandomElements)
 
 	admin := e.Group("/admin", middleware.KeyAuth(func(auth string, c echo.Context) (bool, error) {
-		fmt.Println(auth)
-		fmt.Println(os.Getenv("RPG_ADMIN_KEY"))
 		return auth == os.Getenv("RPG_ADMIN_KEY"), nil
 	}))
 	admin.PUT("/upload", putUpload)
