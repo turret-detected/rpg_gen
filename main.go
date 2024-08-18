@@ -78,6 +78,9 @@ func getRandomElements(c echo.Context) error {
 	if err != nil || count < 1 {
 		count = 1
 	}
+	if count > 50 {
+		count = 50
+	}
 
 	data := c.Get("data").(*DataFileV1)
 
