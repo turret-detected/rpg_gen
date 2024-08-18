@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -66,14 +68,25 @@ func createGenerators(data DataFileV1) DataFileV1 {
 }
 
 func main() {
-	filePath := flag.String("data", "data/demo.yaml", "data file to use")
+	dataSource := flag.String("data", "data/demo.yaml", "data file to use")
 	flag.Parse()
 
 	// Load categories from YAML file
-	file := lo.Must(os.Open(*filePath))
-	defer file.Close()
 	data := DataFileV1{}
-	lo.Must0(yaml.NewDecoder(file).Decode(&data))
+	if strings.HasPrefix(*dataSource, "http") {
+		req := lo.Must(http.NewRequest(http.MethodGet, *dataSource, nil))
+		resp := lo.Must(http.DefaultClient.Do(req))
+		if resp.StatusCode != http.StatusOK {
+			fmt.Println(string(lo.Must(io.ReadAll(resp.Body))))
+			panic(resp.Status)
+		}
+		lo.Must0(yaml.NewDecoder(resp.Body).Decode(&data))
+	} else {
+		file := lo.Must(os.Open(*dataSource))
+		defer file.Close()
+		lo.Must0(yaml.NewDecoder(file).Decode(&data))
+	}
+
 	DataTable = createGenerators(data)
 
 	// Initialize Echo
