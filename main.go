@@ -39,6 +39,7 @@ var (
 	DataTable DataFileV1 = DataFileV1{}
 )
 
+// Adds a weighted random chooser to DataFileV1 generators
 func createGenerators(data DataFileV1) DataFileV1 {
 	for _, generator := range data.Generators {
 		choices := make([]wrand.Choice[string, int], len(generator.Entries))
@@ -67,71 +68,9 @@ func createGenerators(data DataFileV1) DataFileV1 {
 	return data
 }
 
-func main() {
-	dataSource := flag.String("data", "data/demo.yaml", "data file to use")
-	flag.Parse()
-
-	// Load categories from YAML file
-	data := DataFileV1{}
-	if strings.HasPrefix(*dataSource, "http") {
-		req := lo.Must(http.NewRequest(http.MethodGet, *dataSource, nil))
-		resp := lo.Must(http.DefaultClient.Do(req))
-		if resp.StatusCode != http.StatusOK {
-			fmt.Println(string(lo.Must(io.ReadAll(resp.Body))))
-			panic(resp.Status)
-		}
-		lo.Must0(yaml.NewDecoder(resp.Body).Decode(&data))
-	} else {
-		file := lo.Must(os.Open(*dataSource))
-		defer file.Close()
-		lo.Must0(yaml.NewDecoder(file).Decode(&data))
-	}
-
-	DataTable = createGenerators(data)
-
-	// Initialize Echo
-	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			c.Set("data", &DataTable)
-			return next(c)
-		}
-	})
-
-	// Serve static files
-	e.Static("/", "static")
-
-	// Define API routes
-	e.GET("/api/categories", getCategories)
-	e.GET("/api/random", getRandomElements)
-
-	admin := e.Group("/admin", middleware.KeyAuth(func(auth string, c echo.Context) (bool, error) {
-		return auth == os.Getenv("RPG_ADMIN_KEY"), nil
-	}))
-	admin.PUT("/upload", putUpload)
-
-	// Start the server
-	e.Logger.Fatal(e.Start(":8080"))
-}
-
-func getCategories(c echo.Context) error {
-	data := c.Get("data").(*DataFileV1)
-
-	var categoryList []string
-	for _, generator := range data.Generators {
-		categoryList = append(categoryList, generator.Name)
-	}
-
-	// Generate HTML options for the select dropdown
-	htmlOptions := ""
-	for _, category := range categoryList {
-		htmlOptions += `<option value="` + category + `">` + category + `</option>`
-	}
-	return c.HTML(http.StatusOK, htmlOptions)
-}
-
+// GET /api/random
+//
+// Given a category and a count, generates HTML list of random elements
 func getRandomElements(c echo.Context) error {
 	category := c.QueryParam("category")
 	countParam := c.QueryParam("count")
@@ -162,9 +101,77 @@ func getRandomElements(c echo.Context) error {
 	return c.HTML(http.StatusOK, htmlResults)
 }
 
+// GET /api/categories
+//
+// Uses the data file to generate an HTML options box containing all available categories
+func getCategories(c echo.Context) error {
+	data := c.Get("data").(*DataFileV1)
+
+	var categoryList []string
+	for _, generator := range data.Generators {
+		categoryList = append(categoryList, generator.Name)
+	}
+
+	// Generate HTML options for the select dropdown
+	htmlOptions := ""
+	for _, category := range categoryList {
+		htmlOptions += `<option value="` + category + `">` + category + `</option>`
+	}
+	return c.HTML(http.StatusOK, htmlOptions)
+}
+
+// PUT /admin/upload
+//
+// Parses the uploaded yaml file and applies its contents to the server
 func putUpload(c echo.Context) error {
 	newData := DataFileV1{}
 	lo.Must0(yaml.NewDecoder(c.Request().Body).Decode(&newData))
 	DataTable = createGenerators(newData)
 	return c.String(http.StatusOK, "data updated")
+}
+
+// main
+func main() {
+	dataSource := flag.String("data", "data/demo.yaml", "data file to use")
+	flag.Parse()
+
+	// Load categories from YAML file
+	data := DataFileV1{}
+	if strings.HasPrefix(*dataSource, "http") {
+		req := lo.Must(http.NewRequest(http.MethodGet, *dataSource, nil))
+		resp := lo.Must(http.DefaultClient.Do(req))
+		if resp.StatusCode != http.StatusOK {
+			fmt.Println(string(lo.Must(io.ReadAll(resp.Body))))
+			panic(resp.Status)
+		}
+		lo.Must0(yaml.NewDecoder(resp.Body).Decode(&data))
+	} else {
+		file := lo.Must(os.Open(*dataSource))
+		defer file.Close()
+		lo.Must0(yaml.NewDecoder(file).Decode(&data))
+	}
+
+	DataTable = createGenerators(data)
+
+	// Initialize Echo server
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set("data", &DataTable)
+			return next(c)
+		}
+	})
+
+	e.Static("/", "static")
+	e.GET("/api/categories", getCategories)
+	e.GET("/api/random", getRandomElements)
+
+	admin := e.Group("/admin", middleware.KeyAuth(func(auth string, c echo.Context) (bool, error) {
+		return auth == os.Getenv("RPG_ADMIN_KEY"), nil
+	}))
+	admin.PUT("/upload", putUpload)
+
+	e.Logger.Fatal(e.Start(":8080"))
 }
