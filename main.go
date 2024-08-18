@@ -103,7 +103,7 @@ func getRandomElements(c echo.Context) error {
 
 // GET /api/categories
 //
-// Uses the data file to generate an HTML options box containing all available categories
+// Uses the data file to generate a list of HTML options containing all available categories
 func getCategories(c echo.Context) error {
 	data := c.Get("data").(*DataFileV1)
 
