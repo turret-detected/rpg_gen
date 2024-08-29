@@ -39,3 +39,13 @@ generators:
       - Black
       - White
       - Pink
+  - name: Colored Writing Utensils
+    type: unweighted-ab
+    entriesA:
+      - Red
+      - Green
+      - Blue
+    entriesB:
+      - Pencil
+      - Pen
+      - Marker 

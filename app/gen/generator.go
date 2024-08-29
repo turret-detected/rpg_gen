@@ -13,17 +13,20 @@ type DataFileV1 struct {
 }
 
 type GeneratorV1 struct {
-	Name    string `yaml:"name"`
-	Type    string `yaml:"type"`
-	Entries []any  `yaml:"entries"`
-	Chooser *wrand.Chooser[string, int]
+	Name     string   `yaml:"name"`
+	Type     string   `yaml:"type"`
+	Entries  []any    `yaml:"entries"`
+	EntriesA []string `yaml:"entriesA"`
+	EntriesB []string `yaml:"entriesB"`
+	Chooser  *wrand.Chooser[string, int]
 }
 
 type GeneratorType string
 
 const (
-	Weighted   GeneratorType = "weighted"
-	Unweighted GeneratorType = "unweighted"
+	Weighted     GeneratorType = "weighted"
+	Unweighted   GeneratorType = "unweighted"
+	UnweightedAB GeneratorType = "unweighted-ab"
 )
 
 // Adds a weighted random chooser to DataFileV1 generators
@@ -43,6 +46,15 @@ func CreateGenerators(data DataFileV1) DataFileV1 {
 			for i, choice := range generator.Entries {
 				entry := choice.(string)
 				choices[i] = wrand.NewChoice(entry, 1)
+			}
+		case UnweightedAB:
+			choices = make([]wrand.Choice[string, int], len(generator.EntriesA)*len(generator.EntriesB))
+
+			for i, entryA := range generator.EntriesA {
+				for j, entryB := range generator.EntriesB {
+					// offset index by length of EntriesA
+					choices[i*len(generator.EntriesA)+j] = wrand.NewChoice(fmt.Sprint(entryA, " ", entryB), 1)
+				}
 			}
 		default:
 			choices = []wrand.Choice[string, int]{{
