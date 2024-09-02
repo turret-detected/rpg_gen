@@ -16,6 +16,7 @@ import (
 )
 
 //go:embed static/*
+//go:embed templates/*.html
 var staticFolder embed.FS
 
 // main

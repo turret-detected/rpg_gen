@@ -2,6 +2,8 @@ package api
 
 import (
 	"embed"
+	"html/template"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,6 +23,15 @@ const (
 var (
 	DataTable gen.DataFileV1 = gen.DataFileV1{}
 )
+
+// echo boilerplate
+type Template struct {
+	templates *template.Template
+}
+
+func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
 
 // GET /api/random
 //
@@ -87,10 +98,33 @@ func putUpload(c echo.Context) error {
 	return c.String(http.StatusOK, "data updated")
 }
 
+// GET /generator/:generatorName
+//
+// Loads the HTML template for the given generator
+func getGenerator(c echo.Context) error {
+	category := c.Param("generatorName")
+
+	_, ok := lo.Find(DataTable.Generators, func(generator *gen.GeneratorV1) bool {
+		return generator.Name == category
+	})
+	if !ok {
+		return c.String(http.StatusBadRequest, "no generator by this name")
+	}
+
+	return c.Render(http.StatusOK, "gen.html", map[string]string{
+		"name": category,
+	})
+}
+
 func NewServer(data gen.DataFileV1, staticFiles embed.FS) *echo.Echo {
 	DataTable = data
 
+	t := &Template{
+		templates: template.Must(template.ParseFS(staticFiles, "templates/*.html")),
+	}
+
 	e := echo.New()
+	e.Renderer = t
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -101,6 +135,7 @@ func NewServer(data gen.DataFileV1, staticFiles embed.FS) *echo.Echo {
 	})
 
 	e.StaticFS("/", echo.MustSubFS(staticFiles, "static"))
+	e.GET("/generator/:generatorName", getGenerator)
 	e.GET("/api/categories", getCategories)
 	e.GET("/api/random", getRandomElements)
 
